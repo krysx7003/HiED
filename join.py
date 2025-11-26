@@ -26,7 +26,13 @@ sales_data = shop_cursor.execute(
 #     """
 # ).fetchone()
 
-for sale in sales_data:
+shop_data = shop_cursor.execute(
+    """
+        SELECT * FROM sklep 
+    """
+).fetchall()
+
+for sale in sales_data:  # Pętla 1
     id = sale["id"]
     items = shop_cursor.execute(
         f"""
@@ -35,17 +41,25 @@ for sale in sales_data:
             WHERE sprzedaz_produkt.sprzedaz_id = {id}
         """
     ).fetchall()
-    for item in items:
+
+    amount = sale["kwota_sprzedazy"]
+    quantity = 0
+
+    for item in items:  # Pętla 2
+        quantity = item["ilosc_sprzedana"]
         print(f"{item['typ']}, {item['przeznaczenie']}, {item['cena']}")
 
+    print(f"Ilość: {quantity}, kwota: {amount}")
 
+# Do tego dane są w shop_data
 """
     CREATE TABLE IF NOT EXISTS sklep (
         id INTEGER PRIMARY KEY,
-        lokalizacja VARCHAR(255)
+        lokalizacja TEXT PRIMARY KEY
     );
 """
 
+# Do tego dane są w pętli 1 zmienna sale
 """
     CREATE TABLE IF NOT EXISTS sprzedaz (
         id_sklepu INTEGER PRIMARY KEY,
@@ -59,6 +73,7 @@ for sale in sales_data:
     );
 """
 
+# Do tego dane są w pętli 2 zmienna item
 """
     CREATE TABLE IF NOT EXISTS produkt (
         id INTEGER PRIMARY KEY,
@@ -68,6 +83,45 @@ for sale in sales_data:
     );
 """
 
+# Do tego dane są w pętli 1 zmienna sale["data"]
+"""
+    CREATE TABLE IF NOT EXISTS czas(
+        id INTEGER PRIMARY KEY,
+        data DATE,
+        rok INTEGER,
+        kwartal INTEGER,
+        miesiac INTEGER,
+        tydzien INTEGER
+    );
+"""
+
+# Ryby po prostu przekopiować
+"""
+    CREATE TABLE IF NOT EXISTS ryby (
+        id INTEGER PRIMARY KEY,
+        gatunek TEXT NOT NULL,
+        typ TEXT NOT NULL,
+        poczatek_okresu INTEGER,
+        koniec_okresu INTEGER
+    );
+"""
+
+# Do tego dane są w weather_data
+"""
+    CREATE TABLE IF NOT EXISTS pogoda(
+        id INTEGER PRIMARY KEY,
+        id_czasu INTEGER,
+        lokalizacja TEXT,
+        opady FLOAT,
+        predkosc_wiatru FLOAT,
+        cisnienie FLOAT,
+        temperatura FLOAT,
+        wilgotnosc FLOAT
+        FOREIGN KEY (id_czasu) REFERENCES czas(id)
+        FOREIGN KEY (lokalizacja) REFERENCES sklep(lokalizacja)
+    );
+
+"""
 
 fish_conn.close()
 shop_conn.close()
