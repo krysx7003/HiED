@@ -16,6 +16,27 @@ shop_cursor = shop_conn.cursor()
 weather_cursor = weather_conn.cursor()
 warehouse_cursor = warehouse_conn.cursor()
 
+def ConvertTime (cursor: sqlite3.Cursor, d: date) -> int:
+    rok = d.year
+    miesiac = d.month
+    kwartal = (d.month - 1) // 3 + 1
+    tydzien = d.isocalendar()[1]
+    
+
+    cursor.execute(
+        """
+            INSERT OR IGNORE INTO czas (data, rok, kwartal, miesiac, tydzien)
+            VALUES (?, ?, ?, ?, ?)
+        """,
+        (d, rok, kwartal, miesiac, tydzien)
+    )
+
+    cursor.connection.commit()
+    return cursor.lastrowid
+
+#################################################################################
+
+
 fish_data = fish_cursor.execute("SELECT * FROM ryby").fetchall()
 warehouse_cursor.executemany(
     """
@@ -38,106 +59,75 @@ warehouse_cursor.executemany(
 warehouse_conn.commit()
 
 
-#produkt_data = shop_cursor.execute("""SELECT * FROM produkt""").fetchall()
-# values = [(item['id'], item['typ'], item['cena'], item['przeznaczenie']) for item in produkt_data]
+produkt_data = shop_cursor.execute("""SELECT * FROM produkt""").fetchall()
+values = [(item['id'], item['typ'], item['cena'], item['przeznaczenie']) for item in produkt_data]
 
-# warehouse_cursor.executemany(
-#     """
-#         INSERT OR IGNORE INTO produkt (id, typ, cena, przeznaczenie)
-#         VALUES (?, ?, ?, ?)
-#     """,
-#     values
-# )
-# warehouse_conn.commit()
-
-
-# weather_data = weather_cursor.execute(
-#     """
-#         SELECT * FROM pomiar
-#         JOIN stacje ON pomiar.station_id = stacje.id
-#         JOIN wartosci ON pomiar.id = wartosci.pomiar_id
-#     """
-#     ).fetchall()
+warehouse_cursor.executemany(
+    """
+        INSERT OR IGNORE INTO produkt (id, typ, cena, przeznaczenie)
+        VALUES (?, ?, ?, ?)
+    """,
+    values
+)
+warehouse_conn.commit()
 
 
-
-# for record_index in range(0, len(weather_data), 5):
-#     record = weather_data[record_index]
-#     data_pomiaru = record["data_pomiaru"]
-#     data_pomiaru = date.fromisoformat(data_pomiaru)
-#     czas_id = ConvertTime(warehouse_cursor, data_pomiaru)
-
-#     rainfall_record = weather_data[record_index + 0]
-#     windspeed_record = weather_data[record_index + 1]
-#     pressure_record = weather_data[record_index + 2]
-#     temperature_record = weather_data[record_index + 3]
-#     humidity_record = weather_data[record_index + 4]
-
-#     warehouse_cursor.execute(
-#         """
-#             INSERT OR IGNORE INTO pogoda (id, id_czasu, lokalizacja, temperatura, wilgotnosc, cisnienie, opady, predkosc_wiatru)
-#             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-#         """,
-#         (
-#             record["pomiar_id"],
-#             czas_id,
-#             record["name"],
-#             temperature_record["wartosc"],
-#             humidity_record["wartosc"],
-#             pressure_record["wartosc"],
-#             rainfall_record["wartosc"],
-#             windspeed_record["wartosc"]
-#         )
-#     )
-#     warehouse_conn.commit()
-
-# values = [(item['id'], item['kwota_sprzedazy'], item['sklep_id'],) for item in sales_data]
-# warehouse_cursor.executemany(
-# """
-#     INSERT OR IGNORE INTO sprzedaz (id, kwota, id_sklepu)
-#     VALUES (?, ?, ?)
-# """,
-# values
-# )
-
-# warehouse_conn.commit()
-
-# sprzedaz_produkt_data = shop_cursor.execute(
-# """
-#     SELECT * FROM sprzedaz_produkt
-# """).fetchall()
-
-# warehouse_cursor.executemany(
-# """
-#     INSERT OR IGNORE INTO sprzedaz_produkt (sprzedaz_id, produkt_id)
-#     VALUES (?, ?)
-# """,
-# [(item['sprzedaz_id'], item['produkt_id']) for item in sprzedaz_produkt_data]
-# )
-# warehouse_conn.commit()
+weather_data = weather_cursor.execute(
+    """
+        SELECT * FROM pomiar
+        JOIN stacje ON pomiar.station_id = stacje.id
+        JOIN wartosci ON pomiar.id = wartosci.pomiar_id
+    """
+    ).fetchall()
 
 
-### DONE
 
-def ConvertTime (cursor: sqlite3.Cursor, d: date) -> int:
-    rok = d.year
-    miesiac = d.month
-    kwartal = (d.month - 1) // 3 + 1
-    tydzien = d.isocalendar()[1]
-    
+for record_index in range(0, len(weather_data), 5):
+    record = weather_data[record_index]
+    data_pomiaru = record["data_pomiaru"]
+    data_pomiaru = date.fromisoformat(data_pomiaru)
+    czas_id = ConvertTime(warehouse_cursor, data_pomiaru)
 
-    cursor.execute(
+    rainfall_record = weather_data[record_index + 0]
+    windspeed_record = weather_data[record_index + 1]
+    pressure_record = weather_data[record_index + 2]
+    temperature_record = weather_data[record_index + 3]
+    humidity_record = weather_data[record_index + 4]
+
+    warehouse_cursor.execute(
         """
-            INSERT OR IGNORE INTO czas (data, rok, kwartal, miesiac, tydzien)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO pogoda (id, id_czasu, lokalizacja, temperatura, wilgotnosc, cisnienie, opady, predkosc_wiatru)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (d, rok, kwartal, miesiac, tydzien)
+        (
+            record["pomiar_id"],
+            czas_id,
+            record["name"],
+            temperature_record["wartosc"],
+            humidity_record["wartosc"],
+            pressure_record["wartosc"],
+            rainfall_record["wartosc"],
+            windspeed_record["wartosc"]
+        )
     )
+    warehouse_conn.commit()
 
-    cursor.connection.commit()
-    return cursor.lastrowid
 
-#################################################################################
+sprzedaz_produkt_data = shop_cursor.execute(
+"""
+    SELECT * FROM sprzedaz_produkt
+""").fetchall()
+
+warehouse_cursor.executemany(
+"""
+    INSERT OR IGNORE INTO sprzedaz_produkt (sprzedaz_id, produkt_id)
+    VALUES (?, ?)
+""",
+[(item['sprzedaz_id'], item['produkt_id']) for item in sprzedaz_produkt_data]
+)
+warehouse_conn.commit()
+
+
 
 
 sales_data = shop_cursor.execute(
@@ -146,6 +136,16 @@ sales_data = shop_cursor.execute(
     JOIN sprzedaz_produkt ON sprzedaz.id = sprzedaz_produkt.sprzedaz_id
 """).fetchall()
 
+values = [(item['id'], item['kwota_sprzedazy'], item['sklep_id'],) for item in sales_data]
+warehouse_cursor.executemany(
+"""
+    INSERT OR IGNORE INTO sprzedaz (id, kwota, id_sklepu)
+    VALUES (?, ?, ?)
+""",
+values
+)
+
+warehouse_conn.commit()
 
 for sale in sales_data:  # Pętla 1
     id = sale["id"]
@@ -158,16 +158,26 @@ for sale in sales_data:  # Pętla 1
         """
     ).fetchall()
 
+    id_czasu_ze_szprzedazy = warehouse_cursor.execute(
+        """
+            SELECT id FROM czas WHERE data = ? 
+        """,
+        (sale["data"],)
+    ).fetchone()
+
     quantity = 0
 
     for item in items:  # Pętla 2
         quantity += item["ilosc_sprzedana"]
-        print(f"{item['typ']}, {item['przeznaczenie']}, {item['cena']}")
-
-    print(f"Ilość: {quantity})")
-
-# Do tego dane są w shop_data
-
+    
+    warehouse_cursor.execute(
+        """
+            UPDATE sprzedaz
+            SET ilosc = ?, id_czasu = ?
+            WHERE id = ?
+        """,
+        (quantity, id_czasu_ze_szprzedazy["id"], id)
+    )
 
 
 warehouse_conn.commit()

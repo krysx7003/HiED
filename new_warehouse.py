@@ -20,12 +20,10 @@ create_warehouse_db = """
     CREATE TABLE IF NOT EXISTS sprzedaz (
         id INTEGER PRIMARY KEY,
         id_sklepu INTEGER,
-        id_produktu INTEGER,
         id_czasu INTEGER,
         kwota INTEGER,
         ilosc INTEGER,
         FOREIGN KEY (id_sklepu) REFERENCES sklep(id),
-        FOREIGN KEY (id_produktu) REFERENCES produkt(id),
         FOREIGN KEY (id_czasu) REFERENCES czas(id)
     );
 """
