@@ -9,7 +9,7 @@ warehouse_cursor = warehouse_conn.cursor()
 
 query1 = """
     SELECT sprzedaz.id_sklepu, sklep.lokalizacja,
-           SUM(sprzedaz.kwota) AS sprzedaz_sum,
+           AVG(produkt.cena) AS cena_avg,
            czas.tydzien,
            SUM(pogoda.opady) AS opady_sum,
            AVG(pogoda.predkosc_wiatru) AS predkosc_wiatru_avg,
@@ -20,6 +20,8 @@ query1 = """
     JOIN sklep ON sprzedaz.id_sklepu = sklep.id
     LEFT JOIN czas ON sprzedaz.id_czasu = czas.id
     LEFT JOIN pogoda ON pogoda.id_czasu = czas.id
+    LEFT JOIN sprzedaz_produkt ON sprzedaz.id = sprzedaz_produkt.sprzedaz_id
+    LEFT JOIN produkt ON sprzedaz_produkt.produkt_id = produkt.id
     GROUP BY czas.tydzien, sprzedaz.id_sklepu
 """
 
@@ -29,13 +31,13 @@ shops = {}
 for row in data:
     sklep_id = row["id_sklepu"]
     tydzien = row["tydzien"]
-    sprzedaz = row["sprzedaz_sum"]
+    cena = row["cena_avg"]
     opady = row["opady_sum"]
 
     if sklep_id not in shops:
         shops[sklep_id] = {
             "tydzien": [],
-            "sprzedaz": [],
+            "cena": [],
             "opady": [],
             "predkosc_wiatru_avg": [],
             "cisnienie_avg": [],
@@ -44,11 +46,9 @@ for row in data:
         }
 
     shops[sklep_id]["tydzien"].append(tydzien)
-    shops[sklep_id]["sprzedaz"].append(sprzedaz)
+    shops[sklep_id]["cena"].append(cena)
     shops[sklep_id]["opady"].append(opady)
-    shops[sklep_id].setdefault("predkosc_wiatru_avg", []).append(
-        row["predkosc_wiatru_avg"]
-    )
+    shops[sklep_id].setdefault("predkosc_wiatru_avg", []).append(row["predkosc_wiatru_avg"])
     shops[sklep_id].setdefault("cisnienie_avg", []).append(row["cisnienie_avg"])
     shops[sklep_id].setdefault("temperatura_avg", []).append(row["temperatura_avg"])
     shops[sklep_id].setdefault("wilgotnosc_avg", []).append(row["wilgotnosc_avg"])
@@ -62,14 +62,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    cena = values["cena"]
     opady = values["opady"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, cena, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Cena towaru (PLN)")
     ax.grid(axis="y")
 
     # Secondary y-axis
@@ -87,7 +87,7 @@ for ax in axes[len(shops) :]:
 
 plt.suptitle("Sprzedaż i opady w poszczególnych sklepach")
 plt.tight_layout()
-plt.savefig("analyse1_opady.png")
+plt.savefig("analyse3_opady.png")
 plt.show(block=False)
 
 fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 4 * rows), sharey=False)
@@ -95,14 +95,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    cena = values["cena"]
     wiatr = values["predkosc_wiatru_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, cena, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Cena towaru (PLN)")
     ax.grid(axis="y")
 
     # Secondary y-axis for rainfall
@@ -121,7 +121,7 @@ for ax in axes[len(shops) :]:
 
 plt.suptitle("Sprzedaż i prędkość wiatru w poszczególnych sklepach")
 plt.tight_layout()
-plt.savefig("analyse1_wiatr.png")
+plt.savefig("analyse3_wiatr.png")
 plt.show(block=False)
 
 fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 4 * rows), sharey=False)
@@ -129,14 +129,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    cena = values["cena"]
     cisnienie = values["cisnienie_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, cena, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Cena towaru (PLN)")
     ax.grid(axis="y")
 
     # Secondary y-axis
@@ -155,7 +155,7 @@ for ax in axes[len(shops) :]:
 
 plt.suptitle("Sprzedaż i ciśnienie w poszczególnych sklepach")
 plt.tight_layout()
-plt.savefig("analyse1_cisnienie.png")
+plt.savefig("analyse3_cisnienie.png")
 plt.show(block=False)
 
 fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 4 * rows), sharey=False)
@@ -163,14 +163,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    cena = values["cena"]
     temperatura = values["temperatura_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, cena, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Cena towaru (PLN)")
     ax.grid(axis="y")
 
     # Secondary y-axis
@@ -189,7 +189,7 @@ for ax in axes[len(shops) :]:
 
 plt.suptitle("Sprzedaż i temperatura w poszczególnych sklepach")
 plt.tight_layout()
-plt.savefig("analyse1_temperatura.png")
+plt.savefig("analyse3_temperatura.png")
 plt.show(block=False)
 
 fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 4 * rows), sharey=False)
@@ -197,14 +197,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    cena = values["cena"]
     wilgotnosc = values["wilgotnosc_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, cena, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Cena towaru (PLN)")
     ax.grid(axis="y")
 
     # Secondary y-axis
@@ -224,7 +224,7 @@ for ax in axes[len(shops) :]:
 
 plt.suptitle("Sprzedaż i wilgotność w poszczególnych sklepach")
 plt.tight_layout()
-plt.savefig("analyse1_wilgotnosc.png")
+plt.savefig("analyse3_wilgotnosc.png")
 plt.show()
 
 warehouse_conn.close()

@@ -11,7 +11,7 @@ create_warehouse_db = """
     );
 """
 warehouse_db.execute(create_warehouse_db)
-# Do tego dane są w pętli 1 zmienna 
+# Do tego dane są w pętli 1 zmienna
 
 warehouse_db.execute("DROP TABLE IF EXISTS sprzedaz;")
 conn.commit()
@@ -95,4 +95,4 @@ warehouse_db.execute(create_warehouse_db)
 
 
 conn.commit()
-conn.close() 
+conn.close()

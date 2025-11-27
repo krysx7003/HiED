@@ -9,7 +9,7 @@ warehouse_cursor = warehouse_conn.cursor()
 
 query1 = """
     SELECT sprzedaz.id_sklepu, sklep.lokalizacja,
-           SUM(sprzedaz.kwota) AS sprzedaz_sum,
+           SUM(sprzedaz.ilosc) AS ilosc_sum,
            czas.tydzien,
            SUM(pogoda.opady) AS opady_sum,
            AVG(pogoda.predkosc_wiatru) AS predkosc_wiatru_avg,
@@ -29,13 +29,13 @@ shops = {}
 for row in data:
     sklep_id = row["id_sklepu"]
     tydzien = row["tydzien"]
-    sprzedaz = row["sprzedaz_sum"]
+    ilosc = row["ilosc_sum"]
     opady = row["opady_sum"]
 
     if sklep_id not in shops:
         shops[sklep_id] = {
             "tydzien": [],
-            "sprzedaz": [],
+            "ilosc": [],
             "opady": [],
             "predkosc_wiatru_avg": [],
             "cisnienie_avg": [],
@@ -44,11 +44,9 @@ for row in data:
         }
 
     shops[sklep_id]["tydzien"].append(tydzien)
-    shops[sklep_id]["sprzedaz"].append(sprzedaz)
+    shops[sklep_id]["ilosc"].append(ilosc)
     shops[sklep_id]["opady"].append(opady)
-    shops[sklep_id].setdefault("predkosc_wiatru_avg", []).append(
-        row["predkosc_wiatru_avg"]
-    )
+    shops[sklep_id].setdefault("predkosc_wiatru_avg", []).append(row["predkosc_wiatru_avg"])
     shops[sklep_id].setdefault("cisnienie_avg", []).append(row["cisnienie_avg"])
     shops[sklep_id].setdefault("temperatura_avg", []).append(row["temperatura_avg"])
     shops[sklep_id].setdefault("wilgotnosc_avg", []).append(row["wilgotnosc_avg"])
@@ -62,14 +60,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    ilosc = values["ilosc"]
     opady = values["opady"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, ilosc, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Sprzedany towar (sztuki)")
     ax.grid(axis="y")
 
     # Secondary y-axis
@@ -95,14 +93,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    ilosc = values["ilosc"]
     wiatr = values["predkosc_wiatru_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, ilosc, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Sprzedany towar (sztuki)")
     ax.grid(axis="y")
 
     # Secondary y-axis for rainfall
@@ -129,14 +127,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    ilosc = values["ilosc"]
     cisnienie = values["cisnienie_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, ilosc, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Sprzedany towar (sztuki)")
     ax.grid(axis="y")
 
     # Secondary y-axis
@@ -163,14 +161,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    ilosc = values["ilosc"]
     temperatura = values["temperatura_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, ilosc, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Sprzedany towar (sztuki)")
     ax.grid(axis="y")
 
     # Secondary y-axis
@@ -197,14 +195,14 @@ axes = axes.flatten()
 
 for ax, (sklep_id, values) in zip(axes, shops.items()):
     tygodnie = values["tydzien"]
-    sprzedaz = values["sprzedaz"]
+    ilosc = values["ilosc"]
     wilgotnosc = values["wilgotnosc_avg"]
 
     # Bar chart for sales
-    ax.bar(tygodnie, sprzedaz, color="cornflowerblue", label="Sprzedaż")
+    ax.bar(tygodnie, ilosc, color="cornflowerblue", label="Sprzedaż")
     ax.set_title(f"Sklep {sklep_id}")
     ax.set_xlabel("Tydzień")
-    ax.set_ylabel("Sprzedaż (PLN)")
+    ax.set_ylabel("Sprzedany towar (sztuki)")
     ax.grid(axis="y")
 
     # Secondary y-axis
