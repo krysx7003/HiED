@@ -1,3 +1,4 @@
+from datetime import date
 import sqlite3
 
 fish_conn = sqlite3.connect("fish.db")
@@ -6,34 +7,149 @@ shop_conn = sqlite3.connect("shop.db")
 shop_conn.row_factory = sqlite3.Row
 weather_conn = sqlite3.connect("weather.db")
 weather_conn.row_factory = sqlite3.Row
+warehouse_conn = sqlite3.connect("data_warehouse.db")
+warehouse_conn.row_factory = sqlite3.Row
+
 
 fish_cursor = fish_conn.cursor()
 shop_cursor = shop_conn.cursor()
 weather_cursor = weather_conn.cursor()
+warehouse_cursor = warehouse_conn.cursor()
 
-# fish_data = fish_cursor.execute("SELECT * FROM ryby").fetchone()
+fish_data = fish_cursor.execute("SELECT * FROM ryby").fetchall()
+warehouse_cursor.executemany(
+    """
+        INSERT OR IGNORE INTO ryby (id, gatunek, typ, poczatek_okresu, koniec_okresu)
+        VALUES (?, ?, ?, ?, ?)
+    """,
+    fish_data
+)
+warehouse_conn.commit()
 
-sales_data = shop_cursor.execute(
+
+shop_data = shop_cursor.execute("""SELECT * FROM sklep""").fetchall()
+warehouse_cursor.executemany(
     """
-        SELECT * FROM sprzedaz 
-    """
-).fetchall()
+        INSERT OR IGNORE INTO sklep (id, lokalizacja)
+        VALUES (?, ?)
+    """,
+    shop_data
+)
+warehouse_conn.commit()
+
+
+#produkt_data = shop_cursor.execute("""SELECT * FROM produkt""").fetchall()
+# values = [(item['id'], item['typ'], item['cena'], item['przeznaczenie']) for item in produkt_data]
+
+# warehouse_cursor.executemany(
+#     """
+#         INSERT OR IGNORE INTO produkt (id, typ, cena, przeznaczenie)
+#         VALUES (?, ?, ?, ?)
+#     """,
+#     values
+# )
+# warehouse_conn.commit()
+
+
 # weather_data = weather_cursor.execute(
 #     """
 #         SELECT * FROM pomiar
 #         JOIN stacje ON pomiar.station_id = stacje.id
 #         JOIN wartosci ON pomiar.id = wartosci.pomiar_id
 #     """
-# ).fetchone()
+#     ).fetchall()
 
-shop_data = shop_cursor.execute(
-    """
-        SELECT * FROM sklep 
-    """
-).fetchall()
+
+
+# for record_index in range(0, len(weather_data), 5):
+#     record = weather_data[record_index]
+#     data_pomiaru = record["data_pomiaru"]
+#     data_pomiaru = date.fromisoformat(data_pomiaru)
+#     czas_id = ConvertTime(warehouse_cursor, data_pomiaru)
+
+#     rainfall_record = weather_data[record_index + 0]
+#     windspeed_record = weather_data[record_index + 1]
+#     pressure_record = weather_data[record_index + 2]
+#     temperature_record = weather_data[record_index + 3]
+#     humidity_record = weather_data[record_index + 4]
+
+#     warehouse_cursor.execute(
+#         """
+#             INSERT OR IGNORE INTO pogoda (id, id_czasu, lokalizacja, temperatura, wilgotnosc, cisnienie, opady, predkosc_wiatru)
+#             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+#         """,
+#         (
+#             record["pomiar_id"],
+#             czas_id,
+#             record["name"],
+#             temperature_record["wartosc"],
+#             humidity_record["wartosc"],
+#             pressure_record["wartosc"],
+#             rainfall_record["wartosc"],
+#             windspeed_record["wartosc"]
+#         )
+#     )
+#     warehouse_conn.commit()
+
+# values = [(item['id'], item['kwota_sprzedazy'], item['sklep_id'],) for item in sales_data]
+# warehouse_cursor.executemany(
+# """
+#     INSERT OR IGNORE INTO sprzedaz (id, kwota, id_sklepu)
+#     VALUES (?, ?, ?)
+# """,
+# values
+# )
+
+# warehouse_conn.commit()
+
+# sprzedaz_produkt_data = shop_cursor.execute(
+# """
+#     SELECT * FROM sprzedaz_produkt
+# """).fetchall()
+
+# warehouse_cursor.executemany(
+# """
+#     INSERT OR IGNORE INTO sprzedaz_produkt (sprzedaz_id, produkt_id)
+#     VALUES (?, ?)
+# """,
+# [(item['sprzedaz_id'], item['produkt_id']) for item in sprzedaz_produkt_data]
+# )
+# warehouse_conn.commit()
+
+
+### DONE
+
+def ConvertTime (cursor: sqlite3.Cursor, d: date) -> int:
+    rok = d.year
+    miesiac = d.month
+    kwartal = (d.month - 1) // 3 + 1
+    tydzien = d.isocalendar()[1]
+    
+
+    cursor.execute(
+        """
+            INSERT OR IGNORE INTO czas (data, rok, kwartal, miesiac, tydzien)
+            VALUES (?, ?, ?, ?, ?)
+        """,
+        (d, rok, kwartal, miesiac, tydzien)
+    )
+
+    cursor.connection.commit()
+    return cursor.lastrowid
+
+#################################################################################
+
+
+sales_data = shop_cursor.execute(
+"""
+    SELECT * FROM sprzedaz
+    JOIN sprzedaz_produkt ON sprzedaz.id = sprzedaz_produkt.sprzedaz_id
+""").fetchall()
+
 
 for sale in sales_data:  # Pętla 1
     id = sale["id"]
+    
     items = shop_cursor.execute(
         f"""
             SELECT * FROM produkt 
@@ -42,87 +158,21 @@ for sale in sales_data:  # Pętla 1
         """
     ).fetchall()
 
-    amount = sale["kwota_sprzedazy"]
     quantity = 0
 
     for item in items:  # Pętla 2
-        quantity = item["ilosc_sprzedana"]
+        quantity += item["ilosc_sprzedana"]
         print(f"{item['typ']}, {item['przeznaczenie']}, {item['cena']}")
 
-    print(f"Ilość: {quantity}, kwota: {amount}")
+    print(f"Ilość: {quantity})")
 
 # Do tego dane są w shop_data
-"""
-    CREATE TABLE IF NOT EXISTS sklep (
-        id INTEGER PRIMARY KEY,
-        lokalizacja TEXT PRIMARY KEY
-    );
-"""
 
-# Do tego dane są w pętli 1 zmienna sale
-"""
-    CREATE TABLE IF NOT EXISTS sprzedaz (
-        id_sklepu INTEGER PRIMARY KEY,
-        id_produktu INTEGER PRIMARY KEY,
-        id_czasu INTEGER PRIMARY KEY,
-        kwota INTEGER,
-        ilosc INTEGER
-        FOREIGN KEY (id_sklepu) REFERENCES sklep(id)
-        FOREIGN KEY (id_produktu) REFERENCES produkt(id)
-        FOREIGN KEY (id_czasu) REFERENCES czas(id)
-    );
-"""
 
-# Do tego dane są w pętli 2 zmienna item
-"""
-    CREATE TABLE IF NOT EXISTS produkt (
-        id INTEGER PRIMARY KEY,
-        typ TEXT,
-        cena INTEGER,
-        przeznaczenie TEXT
-    );
-"""
 
-# Do tego dane są w pętli 1 zmienna sale["data"]
-"""
-    CREATE TABLE IF NOT EXISTS czas(
-        id INTEGER PRIMARY KEY,
-        data DATE,
-        rok INTEGER,
-        kwartal INTEGER,
-        miesiac INTEGER,
-        tydzien INTEGER
-    );
-"""
-
-# Ryby po prostu przekopiować
-"""
-    CREATE TABLE IF NOT EXISTS ryby (
-        id INTEGER PRIMARY KEY,
-        gatunek TEXT NOT NULL,
-        typ TEXT NOT NULL,
-        poczatek_okresu INTEGER,
-        koniec_okresu INTEGER
-    );
-"""
-
-# Do tego dane są w weather_data
-"""
-    CREATE TABLE IF NOT EXISTS pogoda(
-        id INTEGER PRIMARY KEY,
-        id_czasu INTEGER,
-        lokalizacja TEXT,
-        opady FLOAT,
-        predkosc_wiatru FLOAT,
-        cisnienie FLOAT,
-        temperatura FLOAT,
-        wilgotnosc FLOAT
-        FOREIGN KEY (id_czasu) REFERENCES czas(id)
-        FOREIGN KEY (lokalizacja) REFERENCES sklep(lokalizacja)
-    );
-
-"""
+warehouse_conn.commit()
 
 fish_conn.close()
 shop_conn.close()
 weather_conn.close()
+warehouse_conn.close()
